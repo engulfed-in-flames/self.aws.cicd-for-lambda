@@ -1,0 +1,39 @@
+name: Verify OIDC in AWS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**/*.py'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Allow GitHub Actions to create the JWT
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # To fetch the current commit and its parent for checking differences
+          fetch-depth: 2
+
+      - name: Print changed files # To properly debug what is being deployed (Optional).
+        run: |
+          echo "List of changed files:" 
+          echo $(git diff --name-only HEAD^ HEAD)
+
+        # Use GitHub's OIDC provider to get short-lived aws credentilas
+        # Ref: [About security hardening with OpenID Connect](https://docs.github.com/en/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
+      - name: Configure AWS Credentials From Test Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws-cn:iam::${{ secrets.AWS_TEST_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ap-northeast-1
+
+      - name: Fetch The Caller Identity
+        run: |
+          aws sts get-caller-identity
