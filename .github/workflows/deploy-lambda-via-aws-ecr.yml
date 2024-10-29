@@ -1,0 +1,66 @@
+# Ref 2: https://docs.aws.amazon.com/lambda/latest/dg/python-image.html
+
+name: Deploy to ECR and update Lambda
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/lambda_function.py'
+
+env:
+  LAMBDA_FUNCTION_NAME: TestCICDFunciton
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Print changed files
+        run: |
+          echo "List of changed files:" 
+          echo $(git diff --name-only HEAD^ HEAD)
+
+      - name: Configure AWS Credentials From Test Account
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws-cn:iam::${{ vars.AWS_CICD_ACCOUNT_ID }}:role/GitHubActionsRole
+          aws-region: ${{ vars.AWS_ECR_REGION }}
+
+      - name: Authenticate Docker to ECR
+        run: |
+          aws ecr get-login-password \
+            --region ${{ vars.AWS_ECR_REGION }} | \
+            docker login \ 
+              --username AWS \
+              --password-stdin ${{ vars.AWS_ECR_REGISTRY_URI }}
+
+      # If you don't want override the existing image, than use `github.sha` as a tag
+      - name: Build Docker image and push it to ECR
+        run: |
+          echo "Building image..."
+          docker build \
+            --platform linux/amd64 \
+            -t ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest ./src/$LAMBDA_FUNCTION_NAME
+
+          echo "Pushing image to ECR..."
+          docker push ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest
+
+      - name: Set Image URI output
+        id: ecr-image
+        run: echo "image=${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest" >> $GITHUB_ENV
+
+      - name: Update Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name $LAMBDA_FUNCTION_NAME \
+            --image-uri ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest
