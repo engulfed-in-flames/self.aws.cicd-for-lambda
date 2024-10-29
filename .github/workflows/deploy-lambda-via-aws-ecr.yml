@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths:
-      - 'src/lambda_function.py'
+      - 'src/TestCICDFunction/lambda_function.py'
 
 env:
   LAMBDA_FUNCTION_NAME: TestCICDFunciton
@@ -30,10 +30,10 @@ jobs:
           echo "List of changed files:" 
           echo $(git diff --name-only HEAD^ HEAD)
 
-      - name: Configure AWS Credentials From Test Account
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws-cn:iam::${{ vars.AWS_CICD_ACCOUNT_ID }}:role/GitHubActionsRole
+          role-to-assume: arn:aws:iam::${{ vars.AWS_CICD_ACCOUNT_ID }}:role/GitHubActionsRole
           aws-region: ${{ vars.AWS_ECR_REGION }}
 
       - name: Authenticate Docker to ECR
