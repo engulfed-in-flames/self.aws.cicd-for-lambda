@@ -50,7 +50,6 @@ jobs:
             --tag ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest \
             ./src/$LAMBDA_FUNCTION_NAME
 
-
           echo "Pushing image to ECR..."
           docker push ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest
 
@@ -63,3 +62,4 @@ jobs:
           aws lambda update-function-code \
             --function-name $LAMBDA_FUNCTION_NAME \
             --image-uri ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest
+            --publish
