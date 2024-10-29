@@ -10,7 +10,7 @@ on:
       - 'src/TestCICDFunction/lambda_function.py'
 
 env:
-  LAMBDA_FUNCTION_NAME: TestCICDFunciton
+  LAMBDA_FUNCTION_NAME: TestCICDFunction
 
 jobs:
   deploy:
@@ -38,11 +38,8 @@ jobs:
 
       - name: Authenticate Docker to ECR
         run: |
-          aws ecr get-login-password \
-            --region ${{ vars.AWS_ECR_REGION }} | \
-            docker login \ 
-              --username AWS \
-              --password-stdin ${{ vars.AWS_ECR_REGISTRY_URI }}
+          aws ecr get-login-password --region ${{ vars.AWS_ECR_REGION }} |
+            docker login --username AWS --password-stdin ${{ vars.AWS_ECR_REGISTRY_URI }}
 
       # If you don't want override the existing image, than use `github.sha` as a tag
       - name: Build Docker image and push it to ECR
@@ -50,7 +47,9 @@ jobs:
           echo "Building image..."
           docker build \
             --platform linux/amd64 \
-            -t ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest ./src/$LAMBDA_FUNCTION_NAME
+            --tag ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest \
+            ./src/$LAMBDA_FUNCTION_NAME
+
 
           echo "Pushing image to ECR..."
           docker push ${{ vars.AWS_ECR_REGISTRY_URI }}/${{ vars.AWS_ECR_REPOSITORY_NAME }}:latest
