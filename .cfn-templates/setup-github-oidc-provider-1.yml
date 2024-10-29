@@ -1,3 +1,7 @@
+Description: >
+  This template allows only the following actions:
+  - s3:PutObject
+
 Parameters:
   GitHubOrg:
     Description: Name of GitHub organization/user (case sensitive)
@@ -12,7 +16,7 @@ Parameters:
     Description: Audience supplied to configure-aws-credentials.
     Default: 'sts.amazonaws.com'
     Type: String
-  MyS3BucketName:
+  LambdaCodeS3BucketName:
     Type: String
 
 Conditions:
@@ -61,8 +65,8 @@ Resources:
                 Action:
                   - s3:PutObject
                 Resource:
-                  - arn:aws:s3:::my-s3-bucket
-                  - arn:aws:s3:::my-s3-bucket/*
+                  - !Sub arn:aws:s3:::${LambdaCodeS3BucketName}
+                  - !Sub arn:aws:s3:::${LambdaCodeS3BucketName}/*
 
   GithubOidc:
     Type: AWS::IAM::OIDCProvider
