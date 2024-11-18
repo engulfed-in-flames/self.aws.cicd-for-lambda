@@ -18,10 +18,10 @@ Description: >
       - lambda:UpdateFunctionCode
 
 Parameters:
-  GitHubOrg:
+  GitHubOrgName:
     Description: Name of GitHub organization/user (case sensitive)
     Type: String
-  RepositoryName:
+  GitHubRepositoryName:
     Description: Name of GitHub repository (case sensitive)
     Type: String
   OIDCProviderArn:
@@ -57,7 +57,7 @@ Resources:
                 token.actions.githubusercontent.com:aud: !Ref OIDCAudience
               StringLike:
                 # Without a subject(`sub`) condition, any GitHub user or repository could potentially assume the role.
-                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${RepositoryName}:*
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrgName}/${GitHubRepositoryName}:*
       # To allow only actions to be done
       Policies:
         - PolicyName: OidcSafetyPolicy
@@ -69,21 +69,31 @@ Resources:
                 Action:
                   - sts:AssumeRole
                 Resource: '*'
-        - PolicyName: GitHubActionsPushDockerImagePolicy
+        - PolicyName: GetAuthorizationToken
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: GetAuthorizationToken
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: '*'
+        - PolicyName: GitHubActionsECRPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Sid: AllowECRActions
                 Effect: Allow
                 Action:
-                  - ecr:GetAuthorizationToken
                   - ecr:BatchGetImage
                   - ecr:BatchCheckLayerAvailability
                   - ecr:InitiateLayerUpload
                   - ecr:UploadLayerPart
                   - ecr:CompleteLayerUpload
                   - ecr:PutImage
-        - PolicyName: GitHubActionsUpdateLambdaPolicy
+                Resource:
+                  - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/*'
+        - PolicyName: GitHubActionsLambdaPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -91,6 +101,8 @@ Resources:
                 Effect: Allow
                 Action:
                   - lambda:UpdateFunctionCode
+                Resource:
+                  - !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*'
 
   GitHubOidc:
     Type: AWS::IAM::OIDCProvider
